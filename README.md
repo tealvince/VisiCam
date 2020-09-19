@@ -1,18 +1,21 @@
 VisiCam
 =======
 
-A Java application, that turns a webcam into a [VisiCut](https://visicut.org/) compatible network camera with marker detection and perspective correction. Uses OpenCV through JavaCV
+A Java application, that turns a webcam into a [VisiCut](https://visicut.org/) compatible network camera with marker detection and perspective and fisheye correction. Uses OpenCV through JavaCV
+
+This branch (tealvince) adds simple fisheye correction to better work with wide-angle lens cameras.
 
 **For detailed information, please have a look at the [VisiCam Wiki](https://github.com/t-oster/VisiCam/wiki).**
 
 Compile and Run
 ===============
-0. Download JavaCV:
+0. Download JavaCV 0.8 (No other versions will work!):
   * On Linux: Simply run `./lib/fetch-javacv.sh` on the command line in the unzipped VisiCam directory.
-  * On Windows: Read the instructions in that file (Download and unpack ZIP).
+  * On Windows: Read the instructions in that file (Download and unpack ZIP, placing javavc-bin/ in lib/).
 1. Make sure you have apache-ant, java jdk >=6 and openCv installed (see below for OS-specific instructions)
 2. Go in the unzipped VisiCam directory and run `ant` on the command line
 3. run `java -jar dist/VisiCam.jar` on the Command Line or double click on the VisiCam.jar file in finder/explorer
+   (copy html folder into dist for this to work)
 
 Running on the Raspberry Pi
 ===========================

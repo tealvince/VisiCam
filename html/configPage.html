@@ -9,18 +9,30 @@
     <script type="text/javascript" src="lib/jquery.imgareaselect-0.9.9/scripts/jquery.imgareaselect.pack.js"></script>
   </head>
   <body>
-    <!-- This notice appears when the capture neither succeeds nor fails, but just hangs. This may happen with some broken webcam drivers. -->
-    <p id="capture-pending" style="font-weight:bold; color:rgb(255, 93, 0);">Capturing the image... if this takes very long, try another camera index, and then possibly restart VisiCam and reload the page.</p>
-    <img style="max-width: 800px;" id="capture"/>
     <fieldset id="settings">
       <legend>VisiCam Settings:</legend>
       <p><a href="https://github.com/t-oster/VisiCam/wiki/Configuration">Help</a></p>
-      <p><label for="cameraIndex">CameraIndex:</label><input id="cameraIndex" name="cameraIndex" type="number" value="0"/></p>
-      <p><label for="inputWidth">InputWidth:</label><input id="inputWidth" name="inputWidth" type="number"  value="640"/></p>
-      <p><label for="inputHeight">InputHeight:</label><input id="inputHeight" name="inputHeight" type="number" value="480"/></p>
-      <p><label for="outputWidth">OutputWidth:</label><input id="outputWidth" name="outputWidth" type="number" value="640"/></p>
-      <p><label for="outputHeight">OutputHeight:</label><input id="outputHeight" name="outputHeight" type="number" value="480"/></p>
-      <p><label for="outputWidth">Zoom Output (%):</label><input id="zoomOutputPercent" name="zoomOutputPercent" type="number" value="100" min="1" max="100000"/></p>
+
+      <table border=0>
+      <tr><td>
+          <label for="cameraIndex">CameraIndex:</label><input id="cameraIndex" name="cameraIndex" type="number" value="0"/>
+      </td><td>
+      </td></tr>
+      
+      <tr><td>
+          <label for="inputWidth">InputWidth:</label><input id="inputWidth" name="inputWidth" type="number"  value="640"/>
+      </td><td>
+          <label for="inputHeight">InputHeight:</label><input id="inputHeight" name="inputHeight" type="number" value="480"/>
+      </td></tr>
+      
+      <tr><td>
+          <label for="outputWidth">OutputWidth:</label><input id="outputWidth" name="outputWidth" type="number" value="640"/>
+      </td><td>
+          <label for="outputHeight">OutputHeight:</label><input id="outputHeight" name="outputHeight" type="number" value="480"/>
+      </td></tr>
+      </table>
+
+      <p><label for="zoomOutputPercent">Zoom Output (%):</label><input id="zoomOutputPercent" name="zoomOutputPercent" type="number" value="100" min="1" max="100000"/></p>
       <p><label for="refreshSeconds">RefreshSeconds:</label><input id="refreshSeconds" name="refreshSeconds" type="number" value="1"/></p>
       <p><label for="lockInsecureSettings">lockInsecureSettings:</label><input id="lockInsecureSettings" name="lockInsecureSettings" type="checkbox"/><br>(set customCapture, captureCommand and captureResult read-only.<br>If this is disabled, anyone can execute arbitrary commands as the user running VisiCam!<br> once enabled, this can only be disabled from config file)</p>
       <hr>
@@ -37,6 +49,60 @@
       <p class="visicamRPiGPU"><label for="visicamRPiGPUImageProcessedPath">FinalImagePath:</label><input id="visicamRPiGPUImageProcessedPath" name="visicamRPiGPUImageProcessedPath" type="text"/><br><br>For visicamRPiGPU ensure that: InputWidth == OutputWidth, InputHeight == OutputHeight,<br>enough GPU split memory in raspi-config (1280x720 => 128 MB),<br>width in [640, 1920], height in [480, 1080],<br>width multiple of 32, height multiple of 16,<br>InactivitySeconds > RefreshSeconds</p>
       <hr>
       <!-- visicamRPiGPU integration end -->
+      <legend>Corner Markers (as fraction of unit image):</legend>
+      <table border=0>
+      <tr><td>
+          <label for="markerSearchfields0x">Top-Left X: </label><input id="markerSearchfields0x" name="markerSearchfields0x" type="number" value="0.20"/></td><td>
+          <label for="markerSearchfields0y">Y:          </label><input id="markerSearchfields0y" name="markerSearchfields0y" type="number" value="0.10"/></td><td>
+          <label for="markerSearchfields0w">W:          </label><input id="markerSearchfields0w" name="markerSearchfields0w" type="number" value="0.01"/></td><td>
+          <label for="markerSearchfields0h">H:          </label><input id="markerSearchfields0h" name="markerSearchfields0h" type="number" value="0.01"/>
+      </td></tr>                                                                                                              
+      <tr><td>                                                                                                                
+          <label for="markerSearchfields1x">Top-Right X:</label><input id="markerSearchfields1x" name="markerSearchfields1x" type="number" value="0.80"/></td><td>
+          <label for="markerSearchfields1y">Y:          </label><input id="markerSearchfields1y" name="markerSearchfields1y" type="number" value="0.10"/></td><td>
+          <label for="markerSearchfields1w">W:          </label><input id="markerSearchfields1w" name="markerSearchfields1w" type="number" value="0.01"/></td><td>
+          <label for="markerSearchfields1h">H:          </label><input id="markerSearchfields1h" name="markerSearchfields1h" type="number" value="0.01"/>
+      </td></tr>                                                                                                              
+      <tr><td>                                                                                                                
+          <label for="markerSearchfields2x">Bot-Left X: </label><input id="markerSearchfields2x" name="markerSearchfields2x" type="number" value="0.05"/></td><td>
+          <label for="markerSearchfields2y">Y:          </label><input id="markerSearchfields2y" name="markerSearchfields2y" type="number" value="0.90"/></td><td>
+          <label for="markerSearchfields2w">W:          </label><input id="markerSearchfields2w" name="markerSearchfields2w" type="number" value="0.01"/></td><td>
+          <label for="markerSearchfields2h">H:          </label><input id="markerSearchfields2h" name="markerSearchfields2h" type="number" value="0.01"/>
+      </td></tr>                                                                                                              
+      <tr><td>                                                                                                                
+          <label for="markerSearchfields3x">Bot-Right X:</label><input id="markerSearchfields3x" name="markerSearchfields3x" type="number" value="0.95"/></td><td>
+          <label for="markerSearchfields3y">Y:          </label><input id="markerSearchfields3y" name="markerSearchfields3y" type="number" value="0.90"/></td><td>
+          <label for="markerSearchfields3w">W:          </label><input id="markerSearchfields3w" name="markerSearchfields3w" type="number" value="0.01"/></td><td>
+          <label for="markerSearchfields3h">H:          </label><input id="markerSearchfields3h" name="markerSearchfields3h" type="number" value="0.01"/>
+      </td></tr>
+      </table>
+
+      <hr>
+      <legend>Clockface outward border adjustments:</legend>
+      <table border=0>
+      <tr><td>
+          <label for="gridBorderAdjustments0" >Adj 12:00:</label><input id="gridBorderAdjustments0"  name="gridBorderAdjustments0"  type="number" value="0.06"/></td><td>
+          <label for="gridBorderAdjustments1" >Adj 1:00:</label><input id="gridBorderAdjustments1"  name="gridBorderAdjustments1"  type="number" value="0.03"/></td><td>
+          <label for="gridBorderAdjustments2" >Adj 2:00:</label><input id="gridBorderAdjustments2"  name="gridBorderAdjustments2"  type="number" value="0.03"/>
+      </td></tr>                                                                                                               
+      <tr><td>                                                                                                                 
+          <label for="gridBorderAdjustments3" >Adj 3:00:</label><input id="gridBorderAdjustments3"  name="gridBorderAdjustments3"  type="number" value="0.06"/></td><td>
+          <label for="gridBorderAdjustments4" >Adj 4:00:</label><input id="gridBorderAdjustments4"  name="gridBorderAdjustments4"  type="number" value="0.03"/></td><td>
+          <label for="gridBorderAdjustments5" >Adj 5:00:</label><input id="gridBorderAdjustments5"  name="gridBorderAdjustments5"  type="number" value="0.03"/>
+      </td></tr>                                                                                                               
+      <tr><td>                                                                                                                 
+          <label for="gridBorderAdjustments6" >Adj 6:00:</label><input id="gridBorderAdjustments6"  name="gridBorderAdjustments6"  type="number" value="0.06"/></td><td>
+          <label for="gridBorderAdjustments7" >Adj 7:00:</label><input id="gridBorderAdjustments7"  name="gridBorderAdjustments7"  type="number" value="0.03"/></td><td>
+          <label for="gridBorderAdjustments8" >Adj 8:00:</label><input id="gridBorderAdjustments8"  name="gridBorderAdjustments8"  type="number" value="0.03"/>
+      </td></tr>                                                                                                               
+      <tr><td>                                                                                                                 
+          <label for="gridBorderAdjustments9" >Adj 9:00:</label><input id="gridBorderAdjustments9"  name="gridBorderAdjustments9"  type="number" value="0.06"/></td><td>
+          <label for="gridBorderAdjustments10">Adj 10:00:</label><input id="gridBorderAdjustments10" name="gridBorderAdjustments10" type="number" value="0.03"/></td><td>
+          <label for="gridBorderAdjustments11">Adj 11:00:</label><input id="gridBorderAdjustments11" name="gridBorderAdjustments11" type="number" value="0.03"/>
+      </td></tr>
+      </table>
+      <hr>
+
       <p><label for="marker">Edit Marker:</label>
       <p><select id="marker">
         <option value="0" selected="selected">top-left</option>
@@ -46,10 +112,17 @@
         </select><br>
         Click and drag in the left image to select the marker area.
       </p>
+      <hr>
+
       <button id="save">Save</button> 
       <a href="index.html"> Back to main page </a>
     </fieldset>
+    <!-- This notice appears when the capture neither succeeds nor fails, but just hangs. This may happen with some broken webcam drivers. -->
+    <p id="capture-pending" style="font-weight:bold; color:rgb(255, 93, 0);">Capturing the image... if this takes very long, try another camera index, and then possibly restart VisiCam and reload the page.</p>
+
     <p style="clear:both"></p>
+    <img style="max-width:800px" id="capture"/>
+
     <script type="text/javascript">
     var activeMarker = 0;
     var settings = {};
@@ -59,10 +132,10 @@
     {
       if (settings.markerSearchfields)
       {
-        settings.markerSearchfields[activeMarker].x = selection.x1/width;
-        settings.markerSearchfields[activeMarker].y = selection.y1/height;
-        settings.markerSearchfields[activeMarker].width = selection.width/width;
-        settings.markerSearchfields[activeMarker].height = selection.height/height;
+        $("#markerSearchfields"+activeMarker+"x").val(selection.x1/width);
+        $("#markerSearchfields"+activeMarker+"y").val(selection.y1/height);
+        $("#markerSearchfields"+activeMarker+"w").val(selection.width/width);
+        $("#markerSearchfields"+activeMarker+"h").val(selection.height/height);
       }
     }
     function loadSettings(s)
@@ -76,6 +149,19 @@
       $("#refreshSeconds").val(settings.refreshSeconds);
       $("#zoomOutputPercent").val(settings.zoomOutputPercent);
       $("#lockInsecureSettings").attr("checked",settings.lockInsecureSettings);
+
+      if (settings.gridBorderAdjustments) {
+        var i;
+        for (i = 0; i < 12; i++) { 
+          $("#gridBorderAdjustments"+i).val(settings.gridBorderAdjustments[i]);
+        }
+        for (i = 0; i < 4; i++) { 
+          $("#markerSearchfields"+i+"x").val(settings.markerSearchfields[i].x);
+          $("#markerSearchfields"+i+"y").val(settings.markerSearchfields[i].y);
+          $("#markerSearchfields"+i+"w").val(settings.markerSearchfields[i].width);
+          $("#markerSearchfields"+i+"h").val(settings.markerSearchfields[i].height);
+        }
+      }
 
       // visicamRPiGPU integration start
       // Ensure that InputWidth == OutputWidth and InputHeight == OutputHeight for visicamRPiGPU
@@ -193,10 +279,10 @@
       $('img#capture').imgAreaSelect({
             handles: true,
             onSelectEnd: updateSelection,
-            x1: width*settings.markerSearchfields[i].x,
-            y1: height*settings.markerSearchfields[i].y,
-            x2: width*(settings.markerSearchfields[i].x+settings.markerSearchfields[i].width),
-            y2: height*(settings.markerSearchfields[i].y+settings.markerSearchfields[i].height)
+            x1: width*Number($("#markerSearchfields"+i+"x").val()),
+            y1: height*Number($("#markerSearchfields"+i+"y").val()),
+            x2: width*(Number($("#markerSearchfields"+i+"x").val())+Number($("#markerSearchfields"+i+"w").val())),
+            y2: height*(Number($("#markerSearchfields"+i+"y").val())+Number($("#markerSearchfields"+i+"h").val()))
         });
     }
     function saveChanges()
@@ -211,6 +297,18 @@
       settings.captureCommand = $("#customCapture").is(":checked") ? $("#captureCommand").val() : "";
       settings.captureResult = $("#customCapture").is(":checked") ? $("#captureResult").val() : "";
       settings.lockInsecureSettings = $("#lockInsecureSettings").is(":checked");
+
+      var i;
+      for (i=0; i<4; i++) {
+        settings.markerSearchfields[i].x = $("#markerSearchfields"+i+"x").val();
+        settings.markerSearchfields[i].y = $("#markerSearchfields"+i+"y").val();
+        settings.markerSearchfields[i].width = $("#markerSearchfields"+i+"w").val();
+        settings.markerSearchfields[i].height = $("#markerSearchfields"+i+"h").val();
+      }
+
+      for (i=0; i<12; i++) {
+        settings["gridBorderAdjustments["+i+"]"] = $("#gridBorderAdjustments"+i).val();
+      }
 
       // visicamRPiGPU integration start
       settings.visicamRPiGPUInactivitySeconds = $("#visicamRPiGPUEnabled").is(":checked") ? $("#visicamRPiGPUInactivitySeconds").val() : "0";

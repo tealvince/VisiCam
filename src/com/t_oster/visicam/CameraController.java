@@ -37,6 +37,12 @@ import org.bytedeco.javacpp.BytePointer;
  */
 public class CameraController 
 {
+  // Variables to support grid-based distortion correction
+  private final Integer gridMatrixRows = 4;
+  private final Integer gridMatrixCols = 4;
+  private final Integer gridMatrixCount = gridMatrixRows * gridMatrixCols;
+  private volatile CvMat[] gridHomographyMatrixes = null;
+
   private volatile CvMat homographyMatrix = null;
   private final Boolean synchronizedCamera = false;                          // Dummy variable only used for camera access synchronization
   private final Boolean synchronizedMatrix = false;                          // Dummy variable only used for matrix access synchronization
@@ -166,7 +172,8 @@ public class CameraController
   {
     Rectangle abs = roi.toAbsoluteRectangle(input.getWidth(), input.getHeight());
     if (abs.width == 0 || abs.height == 0) {
-        throw new Exception("Marker search field is empty. Please select an area for each marker.");
+        // Allow single points as fixed values
+        return new RelativePoint((abs.x)/(double)input.getWidth(), (abs.y)/(double)input.getHeight());
     }
     IplImage in = IplImage.createFrom(input.getSubimage(abs.x, abs.y, abs.width, abs.height));
     IplImage gray = IplImage.create(in.width(), in.height(), in.depth(), 1);
@@ -192,7 +199,9 @@ public class CameraController
       return result;
     }
     cvReleaseMemStorage(storage);
-    return null;
+    // If marker not found, use center of search region 
+    VisiCam.log("Warning: Marker not found at (" + roi.x + "," + roi.y + "," + roi.w + "," + roi.h + "); using center.");
+    return new RelativePoint((abs.x+abs.width/2)/(double)input.getWidth(), (abs.y+abs.height/2)/(double)input.getHeight());
   }
   
   // find all markers in searchfields, returns an array with RelativePoint entries (or null entry if marker not found)
@@ -211,7 +220,28 @@ public class CameraController
   {
         synchronized (synchronizedMatrix)
         {
-            if (homographyMatrix != null)
+            if (gridHomographyMatrixes != null)
+            {
+                IplImage in = IplImage.createFrom(img);
+                IplImage out = IplImage.createFrom(img);
+                
+                int k = 0;
+                int width = img.getWidth();
+                int height = img.getHeight();
+                for (int j=0; j<gridMatrixRows; j++) {
+                    for (int i=0; i<gridMatrixCols; i++) {
+                        int first = j*(gridMatrixCols+1)+i;
+                        CvRect rect = cvRect(i*width/gridMatrixCols, j*height/gridMatrixRows, width/gridMatrixCols, height/gridMatrixRows);
+                        
+                        // Map output of each matrix to target cell
+                        cvSetImageROI(out, rect); 
+                        cvWarpPerspective(in, out, gridHomographyMatrixes[k++]);
+                        cvResetImageROI(out); 
+                    }
+                }
+                return out.getBufferedImage();
+            }
+            else if (homographyMatrix != null)
             {
                 IplImage in = IplImage.createFrom(img);
                 cvWarpPerspective(in, in, homographyMatrix);
@@ -224,7 +254,58 @@ public class CameraController
         }
   }
 
-  public void updateHomographyMatrix(BufferedImage img, RelativePoint[] markerPositions, float zoomOutputPercent, double ouputWidth, double outputHeight, boolean visicamRPiGPUEnabled, String visicamRPiGPUMatrixPath) throws FileNotFoundException, IOException
+  public void updateHomographyMatrix(BufferedImage img, RelativePoint[] markerPositions, float zoomOutputPercent, double outputWidth, double outputHeight, boolean visicamRPiGPUEnabled, String visicamRPiGPUMatrixPath) throws FileNotFoundException, IOException
+  {
+      // Simple 4-corner mapping 
+      if (markerPositions.length == 4) {
+          CvMat localHomographyMatrix = calculateHomographyMatrix(img, 1,1, markerPositions, zoomOutputPercent, outputWidth, outputHeight, visicamRPiGPUEnabled, visicamRPiGPUMatrixPath);
+          
+          // This looks weird, but homographyMatrix must not be null for synchronized access
+          // If it is null, no need to care for synchronized access at all
+          if (homographyMatrix != null) {
+              synchronized (synchronizedMatrix) {
+                  homographyMatrix = localHomographyMatrix;
+              }
+          } else {
+              homographyMatrix = localHomographyMatrix;
+          }
+      } 
+      
+      // Grid mapping from 5x5 array of points to 4x4 grid of matrices
+      else if (markerPositions.length == (gridMatrixRows+1) * (gridMatrixCols+1)) {
+          CvMat[] matrixes = new CvMat[gridMatrixCount];
+          
+          // Generate matrixes
+          int k = 0;
+          for (int j=0; j<gridMatrixRows; j++) {
+              for (int i=0; i<gridMatrixCols; i++) {
+                  int first = j*(gridMatrixCols+1)+i;
+                  RelativePoint[] corners = new RelativePoint[] { markerPositions[first], markerPositions[first+1], markerPositions[first+gridMatrixCols+1], markerPositions[first+gridMatrixCols+2] };
+                  matrixes[k++] = calculateHomographyMatrix(img, gridMatrixCols, gridMatrixRows, corners, zoomOutputPercent, outputWidth, outputHeight, visicamRPiGPUEnabled, visicamRPiGPUMatrixPath);
+              }
+          }
+          
+          // Save matrixes
+          if (gridHomographyMatrixes != null) {
+              synchronized (synchronizedMatrix) {
+                  gridHomographyMatrixes = matrixes;
+              }
+          } else {
+              gridHomographyMatrixes = matrixes;
+          }
+
+          // Recursively call to update 4-corner matrix
+          RelativePoint[] cornerMarkers = new RelativePoint[] { markerPositions[0], markerPositions[4], markerPositions[20], markerPositions[24] };
+          updateHomographyMatrix(img, cornerMarkers, zoomOutputPercent, outputWidth, outputHeight, visicamRPiGPUEnabled, visicamRPiGPUMatrixPath);
+      }
+      
+      // Error
+      else {
+          VisiCam.log("updateHomographyMatrix called with unsupported marker count " + markerPositions.length);
+      }
+  }
+
+  public CvMat calculateHomographyMatrix(BufferedImage img, float divideX, float divideY, RelativePoint[] markerPositions, float zoomOutputPercent, double ouputWidth, double outputHeight, boolean visicamRPiGPUEnabled, String visicamRPiGPUMatrixPath) throws FileNotFoundException, IOException
   {
     CvMat src = CvMat.create(markerPositions.length, 1, CV_32FC(2));
 
@@ -250,12 +331,12 @@ public class CameraController
     // x' = (x-width/2)*zoom + width/2
     // same for y'.
     // for zoom=1 (100%), the result is the identity matrix.
-    zoomMat.put(0, 0, zoomOutputPercent/100.f);
+    zoomMat.put(0, 0, zoomOutputPercent/100.f/divideX);
     zoomMat.put(0, 1, 0);
     zoomMat.put(0, 2, img.getWidth() / 2 * (1 - zoomOutputPercent/100.f));
     // same for y
     zoomMat.put(1, 0, 0);
-    zoomMat.put(1, 1, zoomOutputPercent/100.f);
+    zoomMat.put(1, 1, zoomOutputPercent/100.f/divideY);
     zoomMat.put(1, 2, img.getHeight() / 2 * (1 - zoomOutputPercent/100.f));
     // keep last coordinate (always 1 for affine transformation)
     zoomMat.put(2, 0, 0);
@@ -303,20 +384,7 @@ public class CameraController
         matrixOutputLock.release();
         matrixOutputChannel.close();
     }
-
-    // This looks weird, but homographyMatrix must not be null for synchronized access
-    // If it is null, no need to care for synchronized access at all
-    if (homographyMatrix != null)
-    {
-        synchronized (synchronizedMatrix)
-        {
-            homographyMatrix = localHomographyMatrix;
-        }
-    }
-    else
-    {
-        homographyMatrix = localHomographyMatrix;
-    }
+    return localHomographyMatrix;
   }
   
   public void setHomographyMatrixInvalid()
@@ -326,6 +394,13 @@ public class CameraController
         synchronized (synchronizedMatrix)
         {
             homographyMatrix = null;
+        }
+    }
+
+    // Clear grid matrixes
+    if (gridHomographyMatrixes != null) {
+        synchronized (synchronizedMatrix) {
+            gridHomographyMatrixes = null;
         }
     }
   }

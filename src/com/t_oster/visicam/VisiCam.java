@@ -24,7 +24,7 @@ public class VisiCam {
       }
       for (Enumeration<InetAddress> ie = netint.getInetAddresses(); ie.hasMoreElements(); ) {
         InetAddress ia = ie.nextElement();
-        if (!ia.isLoopbackAddress())
+        if (!ia.isLoopbackAddress() && ia.isSiteLocalAddress())
         {
           String ip = ia.getHostAddress();
           if (!ip.contains(":"))
