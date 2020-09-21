@@ -1,5 +1,6 @@
 package com.t_oster.visicam;
 
+import java.awt.geom.Point2D;
 import java.awt.Point;
 
 /**
@@ -43,7 +44,12 @@ public class RelativePoint
   {
     return new Point((int) (x*width), (int) (y*height));
   }
-  
+
+  public Point2D.Double toPoint2D()
+  {
+    return new Point2D.Double(this.x, this.y);
+  }
+
   protected final double check(double input)
   {
     if (input < 0 || input > 1)

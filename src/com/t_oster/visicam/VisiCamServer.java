@@ -9,6 +9,7 @@ import org.bytedeco.javacv.FrameGrabber;
 import gr.ktogias.NanoHTTPD;
 import java.awt.BasicStroke;
 import java.awt.Color;
+import java.awt.geom.Point2D;
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 import java.awt.image.ColorModel;
@@ -402,16 +403,34 @@ public class VisiCamServer extends NanoHTTPD
       return response;
   }
 
-  private RelativePoint average2(RelativePoint p1, RelativePoint p2, float dx, float dy)
+  private RelativePoint toRelativePoint(Point2D.Double point)
   {
-      return new RelativePoint(Math.min(1,Math.max(0,(p1.getX() + p2.getX())/2 + dx)),
-                               Math.min(1,Math.max(0,(p1.getY() + p2.getY())/2 + dy)));
+      double x = Math.min(1f, Math.max(0f, point.x));
+      double y = Math.min(1f, Math.max(0f, point.y));
+      return new RelativePoint(x,y);
   }
 
-  private RelativePoint average4(RelativePoint p1, RelativePoint p2, RelativePoint p3, RelativePoint p4, float dx, float dy)
+  private Point2D.Double getIntersection(RelativePoint p0, RelativePoint p1, RelativePoint p2, RelativePoint p3, float dx, float dy)
   {
-      return new RelativePoint(Math.min(1,Math.max(0,(p1.getX() + p2.getX() + p3.getX() + p4.getX())/4 + dx)), 
-                               Math.min(1,Math.max(0,(p1.getY() + p2.getY() + p3.getY() + p4.getY())/4 + dy)));
+      return getIntersection(p0.toPoint2D(), p1, p2, p3, dx, dy);
+  }
+
+  private Point2D.Double getIntersection(Point2D.Double p0, RelativePoint p1, RelativePoint p2, RelativePoint p3, float dx, float dy)
+  {
+      return getIntersection(p0, p1.toPoint2D(), p2.toPoint2D(), p3.toPoint2D(), dx, dy);
+  }
+
+  private Point2D.Double getIntersection(Point2D.Double p0, Point2D.Double p1, Point2D.Double p2, Point2D.Double p3, float dx, float dy)
+  {
+      Point2D.Double s1 = new Point2D.Double(p1.x - p0.x, p1.y - p0.y);
+      Point2D.Double s2 = new Point2D.Double(p3.x - p2.x, p3.y - p2.y);
+      double d = (-s2.x * s1.y + s1.x * s2.y);
+
+      // Calculate position of intersection.
+      // If lines are parallel, just return a far away point on one line.
+      double t = (d == 0.0) ? 1000000.0 : ( s2.x * (p0.y - p2.y) - s2.y * (p0.x - p2.x)) / d;
+
+      return new Point2D.Double( p0.x + (t * s1.x) + dx, p0.y + (t * s1.y) + dy);
   }
 
   // Create grid markers from 4 corner markers and 12 clockface distortion vertices  
@@ -443,36 +462,42 @@ public class VisiCamServer extends NanoHTTPD
       grid[ 4] = corners[1];
       grid[20] = corners[2];
       grid[24] = corners[3];
-      
-      // Fill outer borders midpoints
-      grid[ 2] = average2(grid[ 0], grid[ 4], 0,-adjustments[ 0]);
-      grid[10] = average2(grid[ 0], grid[20],   -adjustments[ 9],0);
-      grid[14] = average2(grid[ 4], grid[24],    adjustments[ 3],0);
-      grid[22] = average2(grid[20], grid[24], 0, adjustments[ 6]);
-      
-      // Fill outer borders quarterpoints
-      grid[ 1] = average2(grid[ 0], grid[ 2], 0,-adjustments[11]);
-      grid[ 3] = average2(grid[ 2], grid[ 4], 0,-adjustments[ 1]);
-      grid[ 5] = average2(grid[ 0], grid[10],   -adjustments[10],0);
-      grid[ 9] = average2(grid[ 4], grid[14],    adjustments[ 2],0);
-      grid[15] = average2(grid[10], grid[20],   -adjustments[ 8],0);
-      grid[19] = average2(grid[14], grid[24],    adjustments[ 4],0);
-      grid[21] = average2(grid[20], grid[22], 0, adjustments[ 7]);
-      grid[23] = average2(grid[22], grid[24], 0, adjustments[ 5]);
-      
-      // Fill in middle plus
-      grid[12] = average4(grid[ 2], grid[10], grid[14], grid[22], 0,0);
-      grid[11] = average2(grid[10], grid[12], 0,0);
-      grid[13] = average2(grid[12], grid[14], 0,0);
-      grid[ 7] = average2(grid[ 2], grid[12], 0,0);
-      grid[17] = average2(grid[12], grid[22], 0,0);
-      
-      // Fill in cross
-      grid[ 6] = average4(grid[ 1], grid[ 5], grid[ 7], grid[11], 0,0);
-      grid[ 8] = average4(grid[ 3], grid[ 7], grid[ 9], grid[13], 0,0);
-      grid[16] = average4(grid[11], grid[15], grid[17], grid[21], 0,0);
-      grid[18] = average4(grid[13], grid[17], grid[19], grid[23], 0,0);
 
+      // Get centerpoint (intersection of diagonals)
+      grid[12] = toRelativePoint(getIntersection(grid[0], grid[24], grid[20], grid[4], 0,0));
+
+      // Get horizontal, vertical vanishing points
+      Point2D.Double xVan = getIntersection(grid[0], grid[4], grid[20], grid[24], 0,0);
+      Point2D.Double yVan = getIntersection(grid[0], grid[20], grid[4], grid[24], 0,0);
+
+      // Fill outer borders midpoints
+      grid[ 2] = toRelativePoint(getIntersection(yVan, grid[12], grid[ 0], grid[ 4], 0,-adjustments[0]));
+      grid[10] = toRelativePoint(getIntersection(xVan, grid[12], grid[ 0], grid[20],   -adjustments[9],0));
+      grid[14] = toRelativePoint(getIntersection(xVan, grid[12], grid[ 4], grid[24],    adjustments[3],0));
+      grid[22] = toRelativePoint(getIntersection(yVan, grid[12], grid[20], grid[24], 0, adjustments[6]));
+
+      // Get mini center cross
+      grid[ 6] = toRelativePoint(getIntersection(grid[12], grid[ 0], grid[ 2], grid[10], -adjustments[10]/2,-adjustments[11]/2));
+      grid[ 8] = toRelativePoint(getIntersection(grid[12], grid[ 4], grid[ 2], grid[14],  adjustments[ 2]/2,-adjustments[ 1]/2));
+      grid[16] = toRelativePoint(getIntersection(grid[12], grid[20], grid[22], grid[10], -adjustments[ 8]/2, adjustments[ 7]/2));
+      grid[18] = toRelativePoint(getIntersection(grid[12], grid[24], grid[22], grid[14],  adjustments[ 4]/2, adjustments[ 5]/2));
+
+      // Fill in horizontals
+      grid[ 5] = toRelativePoint(getIntersection(grid[ 6], grid[ 8], grid[ 0], grid[20], -adjustments[10],0));
+      grid[ 7] = toRelativePoint(getIntersection(grid[ 6], grid[ 8], grid[ 2], grid[22], 0,0));
+      grid[ 9] = toRelativePoint(getIntersection(grid[ 6], grid[ 8], grid[ 4], grid[24],  adjustments[ 2],0));
+      grid[15] = toRelativePoint(getIntersection(grid[16], grid[18], grid[ 0], grid[20], -adjustments[ 8],0));
+      grid[17] = toRelativePoint(getIntersection(grid[16], grid[18], grid[ 2], grid[22], 0,0));
+      grid[19] = toRelativePoint(getIntersection(grid[16], grid[18], grid[ 4], grid[24],  adjustments[ 4],0));
+
+      // Fill in verticals
+      grid[ 1] = toRelativePoint(getIntersection(grid[ 6], grid[16], grid[ 0], grid[ 4], 0,-adjustments[11]));
+      grid[11] = toRelativePoint(getIntersection(grid[ 6], grid[16], grid[10], grid[14], 0,0));
+      grid[21] = toRelativePoint(getIntersection(grid[ 6], grid[16], grid[20], grid[24], 0, adjustments[ 7]));
+      grid[ 3] = toRelativePoint(getIntersection(grid[ 8], grid[18], grid[ 0], grid[ 4], 0,-adjustments[ 1]));
+      grid[13] = toRelativePoint(getIntersection(grid[ 8], grid[18], grid[10], grid[14], 0,0));
+      grid[23] = toRelativePoint(getIntersection(grid[ 8], grid[18], grid[20], grid[24], 0, adjustments[ 5]));
+      
       return grid;
   }
   
@@ -510,16 +535,17 @@ public class VisiCamServer extends NanoHTTPD
             int fieldW = (int) (markerSearchfields[i].getWidth()*img.getWidth());
             int fieldY = (int) (markerSearchfields[i].getY()*img.getHeight());
             int fieldH = (int) (markerSearchfields[i].getHeight()*img.getHeight());
-            g.setStroke(new BasicStroke(4));
+            g.setStroke(new BasicStroke((Integer)(img.getWidth()/100)));
             g.setColor(Color.RED);
             g.drawRect(fieldX, fieldY, fieldW, fieldH);
             if (currentMarkerPositions[i] != null)
             {
               int x = (int) (currentMarkerPositions[i].getX()*img.getWidth());
               int y = (int) (currentMarkerPositions[i].getY()*img.getHeight());
+              int len = img.getWidth()/32;
               g.setColor(Color.GREEN);
-              g.drawLine(x-25, y-25, x+25, y+25);
-              g.drawLine(x-25, y+25, x+25, y-25);
+              g.drawLine(x-len, y-len, x+len, y+len);
+              g.drawLine(x-len, y+len, x+len, y-len);
             }
           }
 
@@ -528,9 +554,10 @@ public class VisiCamServer extends NanoHTTPD
           for (int i = 0; i < currentGridMarkers.length; i++) {
               int x = (int) (currentGridMarkers[i].getX()*img.getWidth());
               int y = (int) (currentGridMarkers[i].getY()*img.getHeight());
+              int len = img.getWidth()/64;
               g.setColor(Color.BLUE);
-              g.drawLine(x-10, y, x+10, y);
-              g.drawLine(x, y-10, x, y+10); 
+              g.drawLine(x-len, y, x+len, y);
+              g.drawLine(x, y-len, x, y+len);
           }
 
         return serveJpeg(img);

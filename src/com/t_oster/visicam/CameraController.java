@@ -200,7 +200,7 @@ public class CameraController
     }
     cvReleaseMemStorage(storage);
     // If marker not found, use center of search region 
-    VisiCam.log("Warning: Marker not found at (" + roi.x + "," + roi.y + "," + roi.w + "," + roi.h + "); using center.");
+    VisiCam.log("Warning: Marker not found at (" + roi.x + "," + roi.y + "," + roi.getWidth() + "," + roi.getHeight() + "); using center.");
     return new RelativePoint((abs.x+abs.width/2)/(double)input.getWidth(), (abs.y+abs.height/2)/(double)input.getHeight());
   }
   
