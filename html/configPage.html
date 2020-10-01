@@ -100,6 +100,10 @@
           <label for="gridBorderAdjustments10">Adj 10:00:</label><input id="gridBorderAdjustments10" name="gridBorderAdjustments10" type="number" value="0.03"/></td><td>
           <label for="gridBorderAdjustments11">Adj 11:00:</label><input id="gridBorderAdjustments11" name="gridBorderAdjustments11" type="number" value="0.03"/>
       </td></tr>
+      <tr><td>
+          <label for="gridCenterAdjustmentX" >CenterX:</label><input id="gridCenterAdjustmentX"  name="gridCenterAdjustmentX"  type="number" value="0.0"/></td><td>
+          <label for="gridCenterAdjustmentY" >CenterY:</label><input id="gridCenterAdjustmentY"  name="gridCenterAdjustmentY"  type="number" value="0.0"/>
+      </td></tr>
       </table>
       <hr>
 
@@ -150,6 +154,8 @@
       $("#zoomOutputPercent").val(settings.zoomOutputPercent);
       $("#lockInsecureSettings").attr("checked",settings.lockInsecureSettings);
 
+      $("#gridCenterAdjustmentX").val(settings.gridCenterAdjustmentX);
+      $("#gridCenterAdjustmentY").val(settings.gridCenterAdjustmentY);
       if (settings.gridBorderAdjustments) {
         var i;
         for (i = 0; i < 12; i++) { 
@@ -309,6 +315,8 @@
       for (i=0; i<12; i++) {
         settings["gridBorderAdjustments["+i+"]"] = $("#gridBorderAdjustments"+i).val();
       }
+      settings.gridCenterAdjustmentX = $("#gridCenterAdjustmentX").val();
+      settings.gridCenterAdjustmentY = $("#gridCenterAdjustmentY").val();
 
       // visicamRPiGPU integration start
       settings.visicamRPiGPUInactivitySeconds = $("#visicamRPiGPUEnabled").is(":checked") ? $("#visicamRPiGPUInactivitySeconds").val() : "0";

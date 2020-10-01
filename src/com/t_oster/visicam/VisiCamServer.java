@@ -61,6 +61,8 @@ public class VisiCamServer extends NanoHTTPD
   private float [] gridBorderAdjustments = { 0,0,0,0,0,0,0,0,0,0,0,0 };
   private final Integer gridBorderCount = 12;
   private final Integer gridMarkerCount = 25;    // 5x5 grid of points defining 4x4 matrices
+  private float gridCenterAdjustmentX = 0;
+  private float gridCenterAdjustmentY = 0;
   
   private Thread refreshHomographyThread;
   private final Object lockRefreshHomography = new Object();
@@ -185,6 +187,8 @@ public class VisiCamServer extends NanoHTTPD
 
     // Save grid border adjustments
     settings.put("gridBorderAdjustments", gridBorderAdjustments);
+    settings.put("gridCenterAdjustmentX", gridCenterAdjustmentX);
+    settings.put("gridCenterAdjustmentY", gridCenterAdjustmentY);
 
     // visicamRPiGPU integration start
     settings.put("visicamRPiGPUInactivitySeconds", visicamRPiGPUInactivitySeconds);
@@ -257,6 +261,8 @@ public class VisiCamServer extends NanoHTTPD
             gridBorderAdjustments[j] = 0;
         }
     }
+    gridCenterAdjustmentX = Float.parseFloat(parms.getProperty("gridCenterAdjustmentX", "0"));
+    gridCenterAdjustmentY = Float.parseFloat(parms.getProperty("gridCenterAdjustmentY", "0"));
     
     // visicamRPiGPU integration start
     String visicamRPiGPUBinaryPathPrevious = visicamRPiGPUBinaryPath;
@@ -434,7 +440,7 @@ public class VisiCamServer extends NanoHTTPD
   }
 
   // Create grid markers from 4 corner markers and 12 clockface distortion vertices  
-  private RelativePoint[] getGridMarkers(RelativePoint[] corners, float[] adjustments)
+  private RelativePoint[] getGridMarkers(RelativePoint[] corners, float[] adjustments, float center_dx, float center_dy)
   {
       if (corners.length != 4 || adjustments.length != gridBorderCount || gridMarkerCount != 25) {
           return null;
@@ -464,7 +470,7 @@ public class VisiCamServer extends NanoHTTPD
       grid[24] = corners[3];
 
       // Get centerpoint (intersection of diagonals)
-      grid[12] = toRelativePoint(getIntersection(grid[0], grid[24], grid[20], grid[4], 0,0));
+      grid[12] = toRelativePoint(getIntersection(grid[0], grid[24], grid[20], grid[4], center_dx,center_dy));
 
       // Get horizontal, vertical vanishing points
       Point2D.Double xVan = getIntersection(grid[0], grid[4], grid[20], grid[24], 0,0);
@@ -477,10 +483,10 @@ public class VisiCamServer extends NanoHTTPD
       grid[22] = toRelativePoint(getIntersection(yVan, grid[12], grid[20], grid[24], 0, adjustments[6]));
 
       // Get mini center cross
-      grid[ 6] = toRelativePoint(getIntersection(grid[12], grid[ 0], grid[ 2], grid[10], -adjustments[10]/2,-adjustments[11]/2));
-      grid[ 8] = toRelativePoint(getIntersection(grid[12], grid[ 4], grid[ 2], grid[14],  adjustments[ 2]/2,-adjustments[ 1]/2));
-      grid[16] = toRelativePoint(getIntersection(grid[12], grid[20], grid[22], grid[10], -adjustments[ 8]/2, adjustments[ 7]/2));
-      grid[18] = toRelativePoint(getIntersection(grid[12], grid[24], grid[22], grid[14],  adjustments[ 4]/2, adjustments[ 5]/2));
+      grid[ 6] = toRelativePoint(getIntersection(grid[12], grid[ 0], grid[ 2], grid[10], -adjustments[10]/16,-adjustments[11]/2));
+      grid[ 8] = toRelativePoint(getIntersection(grid[12], grid[ 4], grid[ 2], grid[14],  adjustments[ 2]/16,-adjustments[ 1]/2));
+      grid[16] = toRelativePoint(getIntersection(grid[12], grid[20], grid[22], grid[10], -adjustments[ 8]/16, adjustments[ 7]/2));
+      grid[18] = toRelativePoint(getIntersection(grid[12], grid[24], grid[22], grid[14],  adjustments[ 4]/16, adjustments[ 5]/2));
 
       // Fill in horizontals
       grid[ 5] = toRelativePoint(getIntersection(grid[ 6], grid[ 8], grid[ 0], grid[20], -adjustments[10],0));
@@ -550,7 +556,7 @@ public class VisiCamServer extends NanoHTTPD
           }
 
           // Draw grid markers
-          RelativePoint[] currentGridMarkers = getGridMarkers(currentMarkerPositions, gridBorderAdjustments);
+          RelativePoint[] currentGridMarkers = getGridMarkers(currentMarkerPositions, gridBorderAdjustments, gridCenterAdjustmentX, gridCenterAdjustmentY);
           for (int i = 0; i < currentGridMarkers.length; i++) {
               int x = (int) (currentGridMarkers[i].getX()*img.getWidth());
               int y = (int) (currentGridMarkers[i].getY()*img.getHeight());
@@ -868,7 +874,7 @@ public class VisiCamServer extends NanoHTTPD
                                 }
                             }
 
-                            RelativePoint[] currentGridMarkers = getGridMarkers(currentMarkerPositions, gridBorderAdjustments);
+                            RelativePoint[] currentGridMarkers = getGridMarkers(currentMarkerPositions, gridBorderAdjustments, gridCenterAdjustmentX, gridCenterAdjustmentY);
                             if (currentGridMarkers.length > 0) {
                                 cc.updateHomographyMatrix(img, currentGridMarkers, zoomOutputPercent, outputWidth, outputHeight, visicamRPiGPUEnabled, visicamRPiGPUMatrixPath);
                             } else {                                
